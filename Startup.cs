@@ -1,4 +1,5 @@
 using BookShop.Data;
+using BookShop.Data.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -30,6 +31,18 @@ namespace BookShop
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
+
+            //Dependency Injections
+            //Data Layer
+            services.AddScoped<IBooksRepository, BooksRepository>();
+            services.AddScoped<IAutorsRepository, AutorsRepository>();
+            services.AddScoped<IGenresRepository, GenresRepository>();
+            services.AddScoped<ISubjectsRepository, SubjectsRepository>();
+            services.AddScoped<IPublishingCompaniesRepository, PublishingCompaniesRepository>();
+            services.AddScoped<IStoragesRepository, StoragesRepository>();
+            services.AddScoped<IOrdersRepository, OrdersRepository>();
+            services.AddScoped<IDiscountsRepository, DiscountsRepository>();
+
             services.AddDatabaseDeveloperPageExceptionFilter();
 
             services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)

@@ -1,28 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using BookShop.Data;
+﻿using BookShop.Data.Repositories;
 using BookShop.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace BookShop.Controllers
 {
     public class StoragesController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IStoragesRepository _storagesRepository;
 
-        public StoragesController(ApplicationDbContext context)
+        public StoragesController(IStoragesRepository storagesRepository)
         {
-            _context = context;
+            _storagesRepository = storagesRepository;
         }
 
         // GET: Storages
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Storage.ToListAsync());
+            return View(await _storagesRepository.GetMany().ToListAsync());
         }
 
         // GET: Storages/Details/5
@@ -33,8 +29,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var storage = await _context.Storage
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var storage = await _storagesRepository.GetAsync(m => m.Id == id);
             if (storage == null)
             {
                 return NotFound();
@@ -58,8 +53,7 @@ namespace BookShop.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(storage);
-                await _context.SaveChangesAsync();
+                await _storagesRepository.AddAsync(storage);
                 return RedirectToAction(nameof(Index));
             }
             return View(storage);
@@ -73,7 +67,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var storage = await _context.Storage.FindAsync(id);
+            var storage = await _storagesRepository.GetAsync(s => s.Id == id);
             if (storage == null)
             {
                 return NotFound();
@@ -97,12 +91,11 @@ namespace BookShop.Controllers
             {
                 try
                 {
-                    _context.Update(storage);
-                    await _context.SaveChangesAsync();
+                    await _storagesRepository.UpdateAsync(storage);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!StorageExists(storage.Id))
+                    if (!await StorageExists(storage.Id))
                     {
                         return NotFound();
                     }
@@ -124,11 +117,10 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var storage = await _context.Storage
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var storage = await _storagesRepository.GetAsync(m => m.Id == id);
             if (storage == null)
             {
-                return NotFound();
+                return NotFound($"Record with id: {id} is not found");
             }
 
             return View(storage);
@@ -139,15 +131,13 @@ namespace BookShop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var storage = await _context.Storage.FindAsync(id);
-            _context.Storage.Remove(storage);
-            await _context.SaveChangesAsync();
+            await _storagesRepository.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool StorageExists(int id)
+        private Task<bool> StorageExists(int id)
         {
-            return _context.Storage.Any(e => e.Id == id);
+            return _storagesRepository.AnyAsync(e => e.Id == id);
         }
     }
 }

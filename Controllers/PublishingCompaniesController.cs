@@ -1,28 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using BookShop.Data;
+﻿using BookShop.Data.Repositories;
 using BookShop.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace BookShop.Controllers
 {
     public class PublishingCompaniesController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IPublishingCompaniesRepository _publisherRepository;
 
-        public PublishingCompaniesController(ApplicationDbContext context)
+        public PublishingCompaniesController(IPublishingCompaniesRepository publisherRepository)
         {
-            _context = context;
+            _publisherRepository = publisherRepository;
         }
 
         // GET: PublishingCompanies
         public async Task<IActionResult> Index()
         {
-            return View(await _context.PublishingCompany.ToListAsync());
+            return View(await _publisherRepository.GetMany().ToListAsync());
         }
 
         // GET: PublishingCompanies/Details/5
@@ -33,8 +29,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var publishingCompany = await _context.PublishingCompany
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var publishingCompany = await _publisherRepository.GetAsync(m => m.Id == id);
             if (publishingCompany == null)
             {
                 return NotFound();
@@ -58,8 +53,7 @@ namespace BookShop.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(publishingCompany);
-                await _context.SaveChangesAsync();
+                await _publisherRepository.AddAsync(publishingCompany);
                 return RedirectToAction(nameof(Index));
             }
             return View(publishingCompany);
@@ -73,7 +67,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var publishingCompany = await _context.PublishingCompany.FindAsync(id);
+            var publishingCompany = await _publisherRepository.GetAsync(pc => pc.Id == id);
             if (publishingCompany == null)
             {
                 return NotFound();
@@ -97,12 +91,11 @@ namespace BookShop.Controllers
             {
                 try
                 {
-                    _context.Update(publishingCompany);
-                    await _context.SaveChangesAsync();
+                    await _publisherRepository.UpdateAsync(publishingCompany);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!PublishingCompanyExists(publishingCompany.Id))
+                    if (!await PublishingCompanyExists(publishingCompany.Id))
                     {
                         return NotFound();
                     }
@@ -124,11 +117,10 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var publishingCompany = await _context.PublishingCompany
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var publishingCompany = await _publisherRepository.GetAsync(m => m.Id == id);
             if (publishingCompany == null)
             {
-                return NotFound();
+                return NotFound($"Record with id: {id} is not found");
             }
 
             return View(publishingCompany);
@@ -139,15 +131,13 @@ namespace BookShop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var publishingCompany = await _context.PublishingCompany.FindAsync(id);
-            _context.PublishingCompany.Remove(publishingCompany);
-            await _context.SaveChangesAsync();
+            await _publisherRepository.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool PublishingCompanyExists(int id)
+        private Task<bool> PublishingCompanyExists(int id)
         {
-            return _context.PublishingCompany.Any(e => e.Id == id);
+            return _publisherRepository.AnyAsync(e => e.Id == id);
         }
     }
 }

@@ -1,28 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using BookShop.Data;
+﻿using BookShop.Data.Repositories;
 using BookShop.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace BookShop.Controllers
 {
     public class GenresController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IGenresRepository _genresRepository;
 
-        public GenresController(ApplicationDbContext context)
+        public GenresController(IGenresRepository genresRepository)
         {
-            _context = context;
+            _genresRepository = genresRepository;
         }
 
         // GET: Genres
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Genre.ToListAsync());
+            return View(await _genresRepository.GetMany().ToListAsync());
         }
 
         // GET: Genres/Details/5
@@ -33,8 +29,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var genre = await _context.Genre
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var genre = await _genresRepository.GetAsync(m => m.Id == id);
             if (genre == null)
             {
                 return NotFound();
@@ -58,8 +53,7 @@ namespace BookShop.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(genre);
-                await _context.SaveChangesAsync();
+                await _genresRepository.AddAsync(genre);
                 return RedirectToAction(nameof(Index));
             }
             return View(genre);
@@ -73,7 +67,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var genre = await _context.Genre.FindAsync(id);
+            var genre = await _genresRepository.GetAsync(g=>g.Id==id);
             if (genre == null)
             {
                 return NotFound();
@@ -97,12 +91,11 @@ namespace BookShop.Controllers
             {
                 try
                 {
-                    _context.Update(genre);
-                    await _context.SaveChangesAsync();
+                    await _genresRepository.UpdateAsync(genre);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!GenreExists(genre.Id))
+                    if (!await GenreExists(genre.Id))
                     {
                         return NotFound();
                     }
@@ -124,11 +117,10 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var genre = await _context.Genre
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var genre = await _genresRepository.GetAsync(m => m.Id == id);
             if (genre == null)
             {
-                return NotFound();
+                return NotFound($"Record with id: {id} is not found");
             }
 
             return View(genre);
@@ -139,15 +131,13 @@ namespace BookShop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var genre = await _context.Genre.FindAsync(id);
-            _context.Genre.Remove(genre);
-            await _context.SaveChangesAsync();
+            await _genresRepository.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool GenreExists(int id)
+        private Task<bool> GenreExists(int id)
         {
-            return _context.Genre.Any(e => e.Id == id);
+            return _genresRepository.AnyAsync(e => e.Id == id);
         }
     }
 }

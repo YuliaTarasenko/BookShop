@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace BookShop.Models
 {
@@ -12,6 +10,7 @@ namespace BookShop.Models
             Books = new List<Book>();
         }
         public int Id { get; set; }
+        [DisplayName("Жанр")]
         public string Name { get; set; }
         public virtual ICollection<Book> Books { get; set; }
     }

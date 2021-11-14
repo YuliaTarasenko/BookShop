@@ -1,28 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using BookShop.Data;
+﻿using BookShop.Data.Repositories;
 using BookShop.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace BookShop.Controllers
 {
     public class BooksController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IBooksRepository _booksRepository;
 
-        public BooksController(ApplicationDbContext context)
+        public BooksController(IBooksRepository booksRepository)
         {
-            _context = context;
+            _booksRepository = booksRepository;
         }
 
         // GET: Books
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Book.ToListAsync());
+            return View(await _booksRepository.GetMany().ToListAsync());
         }
 
         // GET: Books/Details/5
@@ -33,8 +29,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var book = await _context.Book
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var book = await _booksRepository.GetAsync(m => m.Id == id);
             if (book == null)
             {
                 return NotFound();
@@ -58,8 +53,7 @@ namespace BookShop.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(book);
-                await _context.SaveChangesAsync();
+                await _booksRepository.AddAsync(book);
                 return RedirectToAction(nameof(Index));
             }
             return View(book);
@@ -73,7 +67,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var book = await _context.Book.FindAsync(id);
+            var book = await _booksRepository.GetAsync(b=>b.Id == id);
             if (book == null)
             {
                 return NotFound();
@@ -97,12 +91,11 @@ namespace BookShop.Controllers
             {
                 try
                 {
-                    _context.Update(book);
-                    await _context.SaveChangesAsync();
+                    await _booksRepository.UpdateAsync(book);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!BookExists(book.Id))
+                    if (!await BookExists(book.Id))
                     {
                         return NotFound();
                     }
@@ -124,11 +117,10 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var book = await _context.Book
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var book = await _booksRepository.GetAsync(m => m.Id == id);
             if (book == null)
             {
-                return NotFound();
+                return NotFound($"Record with id: {id} is not found");
             }
 
             return View(book);
@@ -139,15 +131,13 @@ namespace BookShop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var book = await _context.Book.FindAsync(id);
-            _context.Book.Remove(book);
-            await _context.SaveChangesAsync();
+            await _booksRepository.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool BookExists(int id)
+        private Task<bool> BookExists(int id)
         {
-            return _context.Book.Any(e => e.Id == id);
+            return _booksRepository.AnyAsync(e => e.Id == id);
         }
     }
 }

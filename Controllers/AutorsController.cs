@@ -1,28 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using BookShop.Data;
+﻿using BookShop.Data.Repositories;
 using BookShop.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace BookShop.Controllers
 {
     public class AutorsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IAutorsRepository _autorsRepository;
 
-        public AutorsController(ApplicationDbContext context)
+        public AutorsController(IAutorsRepository autorsRepository)
         {
-            _context = context;
+            _autorsRepository = autorsRepository;
         }
 
         // GET: Autors
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Autor.ToListAsync());
+            return View(await _autorsRepository.GetMany().ToListAsync());
         }
 
         // GET: Autors/Details/5
@@ -33,8 +29,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var autor = await _context.Autor
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var autor = await _autorsRepository.GetAsync(m => m.Id == id);
             if (autor == null)
             {
                 return NotFound();
@@ -58,8 +53,7 @@ namespace BookShop.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(autor);
-                await _context.SaveChangesAsync();
+                await _autorsRepository.AddAsync(autor);
                 return RedirectToAction(nameof(Index));
             }
             return View(autor);
@@ -73,7 +67,7 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var autor = await _context.Autor.FindAsync(id);
+            var autor = await _autorsRepository.GetAsync(a=>a.Id==id);
             if (autor == null)
             {
                 return NotFound();
@@ -97,12 +91,11 @@ namespace BookShop.Controllers
             {
                 try
                 {
-                    _context.Update(autor);
-                    await _context.SaveChangesAsync();
+                    await _autorsRepository.UpdateAsync(autor);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!AutorExists(autor.Id))
+                    if (!await AutorExists(autor.Id))
                     {
                         return NotFound();
                     }
@@ -124,11 +117,10 @@ namespace BookShop.Controllers
                 return NotFound();
             }
 
-            var autor = await _context.Autor
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var autor = await _autorsRepository.GetAsync(m => m.Id == id);
             if (autor == null)
             {
-                return NotFound();
+                return NotFound($"Record with id: {id} is not found");
             }
 
             return View(autor);
@@ -139,15 +131,13 @@ namespace BookShop.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var autor = await _context.Autor.FindAsync(id);
-            _context.Autor.Remove(autor);
-            await _context.SaveChangesAsync();
+            await _autorsRepository.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool AutorExists(int id)
+        private Task<bool> AutorExists(int id)
         {
-            return _context.Autor.Any(e => e.Id == id);
+            return _autorsRepository.AnyAsync(e => e.Id == id);
         }
     }
 }
